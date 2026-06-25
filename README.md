@@ -14,8 +14,8 @@
 
 ```text
 apps/
-  web/       # 网站后台，计划使用 Next.js
-  api/       # 后端接口，计划使用 NestJS
+  web/       # 网站后台，使用 Next.js
+  api/       # 后端接口，使用 NestJS
   miniapp/   # 学生端/教师端小程序，计划使用 Taro
 packages/
   shared/    # 公共类型、常量和工具
@@ -33,6 +33,34 @@ docs/        # 需求、架构、接口和部署文档
 - 文件存储：开发期 MinIO，正式环境腾讯云 COS 或阿里云 OSS
 - 智能分析：Python/FastAPI + OCR + 大模型 API + 向量检索
 
+## 当前已实现
+
+### 工程基础
+
+- 已启用 pnpm workspace，覆盖 `apps/*` 和 `packages/*`。
+- 已配置统一的 TypeScript、ESLint、Prettier 和根目录脚本。
+- 已生成 `pnpm-lock.yaml`，便于 CI 和本地环境锁定依赖版本。
+- 已补充 backlog 文档，见 `docs/backlog.md`。
+
+### Web 后台
+
+- 已初始化 `apps/web` Next.js + React + TypeScript 后台框架。
+- 已提供登录页、仪表盘、题库、讲义、课表、学生档案、文件库页面壳子。
+- 已提供统一侧边导航、基础视觉样式、空状态和示例数据。
+- 题库筛选已复用公共包中的天津学科和区域常量。
+
+### API 服务
+
+- 已初始化 `apps/api` NestJS + TypeScript 后端框架。
+- 已提供 `GET /health` 健康检查接口。
+- 已建立 auth、users、questions、files、timetable、students 模块目录。
+- 已配置 CORS，支持从 Web 后台访问 API。
+
+### 公共包
+
+- 已初始化 `packages/shared` 公共包。
+- 已提供天津九大学科、天津区域、用户角色和健康检查相关类型。
+
 ## 开发阶段
 
 1. 搭建仓库、任务模板、CI 和基础目录。
@@ -42,12 +70,25 @@ docs/        # 需求、架构、接口和部署文档
 
 ## 本地开发
 
-本仓库当前是项目骨架。补齐 Node.js LTS 和 pnpm 后执行：
+补齐 Node.js LTS 和 pnpm 后执行：
 
 ```bash
+corepack enable
 pnpm install
+pnpm dev
 pnpm lint
+pnpm typecheck
 pnpm test
 ```
 
-实际应用代码会在 `apps/web`、`apps/api` 和 `apps/miniapp` 中逐步创建。
+常用入口：
+
+- `pnpm --filter web dev`：启动 Next.js 后台，默认端口 3000。
+- `pnpm --filter api dev`：启动 NestJS API，默认端口 4000。
+- `GET http://localhost:4000/health`：API 健康检查。
+
+当前 backlog 见 `docs/backlog.md`。
+
+## 文档维护约定
+
+后续每个实现功能或调整用户可见能力的 PR，都需要同步更新 README 的“当前已实现”部分。若 PR 只修改内部工程配置、CI、依赖或文档，也需要在 PR 描述中说明 README 是否需要更新。
