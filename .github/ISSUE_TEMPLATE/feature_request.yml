@@ -1,0 +1,34 @@
+name: Feature request
+description: Describe a product capability or improvement.
+title: "[Feature]: "
+labels: ["feature"]
+body:
+  - type: dropdown
+    id: module
+    attributes:
+      label: Module
+      options:
+        - 题库
+        - 讲义制作
+        - 课表
+        - 教师端一生一案
+        - 学生端错题本
+        - 后台管理
+        - 智能分析
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: need
+    attributes:
+      label: User need
+      description: Who needs this and why?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What must be true for this to be done?
+    validations:
+      required: true

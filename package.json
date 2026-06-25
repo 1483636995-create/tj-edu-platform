@@ -1,0 +1,17 @@
+{
+  "name": "tj-edu-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tianjin tutoring platform monorepo.",
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "dev": "echo \"Create apps/web, apps/api and apps/miniapp before running dev.\"",
+    "lint": "echo \"No lint target yet.\"",
+    "test": "echo \"No test target yet.\"",
+    "typecheck": "echo \"No typecheck target yet.\""
+  },
+  "engines": {
+    "node": ">=20.11.0",
+    "pnpm": ">=9.0.0"
+  }
+}
