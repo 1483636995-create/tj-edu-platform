@@ -42,12 +42,21 @@ docs/        # 需求、架构、接口和部署文档
 
 ## 本地开发
 
-本仓库当前是项目骨架。补齐 Node.js LTS 和 pnpm 后执行：
+补齐 Node.js LTS 和 pnpm 后执行：
 
 ```bash
+corepack enable
 pnpm install
+pnpm dev
 pnpm lint
+pnpm typecheck
 pnpm test
 ```
 
-实际应用代码会在 `apps/web`、`apps/api` 和 `apps/miniapp` 中逐步创建。
+常用入口：
+
+- `pnpm --filter web dev`：启动 Next.js 后台，默认端口 3000。
+- `pnpm --filter api dev`：启动 NestJS API，默认端口 4000。
+- `GET http://localhost:4000/health`：API 健康检查。
+
+当前 backlog 见 `docs/backlog.md`。

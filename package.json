@@ -5,13 +5,24 @@
   "description": "Tianjin tutoring platform monorepo.",
   "packageManager": "pnpm@9.15.4",
   "scripts": {
-    "dev": "echo \"Create apps/web, apps/api and apps/miniapp before running dev.\"",
-    "lint": "echo \"No lint target yet.\"",
-    "test": "echo \"No test target yet.\"",
-    "typecheck": "echo \"No typecheck target yet.\""
+    "dev": "pnpm --parallel --filter web --filter api dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "engines": {
     "node": ">=20.11.0",
     "pnpm": ">=9.0.0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
   }
 }
