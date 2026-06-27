@@ -29,6 +29,7 @@ Thumbs.db
 !.vscode/settings.json
 
 # generated files
+apps/api/src/generated/prisma/
 uploads/
 tmp/
 *.local
