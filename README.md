@@ -54,7 +54,16 @@ docs/        # 需求、架构、接口和部署文档
 - 已初始化 `apps/api` NestJS + TypeScript 后端框架。
 - 已提供 `GET /health` 健康检查接口。
 - 已建立 auth、users、questions、files、timetable、students 模块目录。
+- 已接入 Prisma 7、PostgreSQL 驱动适配器和 NestJS 全局数据库模块。
 - 已配置 CORS，支持从 Web 后台访问 API。
+
+### 数据库与本地环境
+
+- 已建立机构、用户、教师、学生、学科、年级、天津区域和知识点核心模型。
+- 已为题库、试卷、文件、课表、学生档案和错题本建立数据模型及关联表。
+- 已提供首个 PostgreSQL 迁移和可重复执行的 seed，初始化九大学科、六个年级、天津 16 个区和示例知识点。
+- 已提供 Docker Compose 草案，可在本地启动 PostgreSQL 16 和 Redis 7。
+- 本地环境、数据库命令和部署约定见 `docs/local-development.md`。
 
 ### 公共包
 
@@ -70,11 +79,15 @@ docs/        # 需求、架构、接口和部署文档
 
 ## 本地开发
 
-补齐 Node.js LTS 和 pnpm 后执行：
+安装 Node.js LTS、pnpm 和 Docker Desktop 后执行：
 
 ```bash
 corepack enable
+cp .env.example .env
 pnpm install
+docker compose up -d
+pnpm --filter api db:migrate:deploy
+pnpm --filter api db:seed
 pnpm dev
 pnpm lint
 pnpm typecheck
@@ -85,9 +98,12 @@ pnpm test
 
 - `pnpm --filter web dev`：启动 Next.js 后台，默认端口 3000。
 - `pnpm --filter api dev`：启动 NestJS API，默认端口 4000。
+- `pnpm --filter api db:migrate`：开发新模型时创建并应用迁移。
+- `pnpm --filter api db:seed`：写入本地基础数据，可重复执行。
+- `docker compose down`：停止本地 PostgreSQL 和 Redis，保留数据卷。
 - `GET http://localhost:4000/health`：API 健康检查。
 
-当前 backlog 见 `docs/backlog.md`。
+Windows PowerShell 可使用 `Copy-Item .env.example .env` 复制环境变量文件。完整说明见 `docs/local-development.md`，当前 backlog 见 `docs/backlog.md`。
 
 ## 文档维护约定
 

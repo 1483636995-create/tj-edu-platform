@@ -1,0 +1,407 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  ACADEMIC_ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum EducationStage {
+  JUNIOR_HIGH
+  SENIOR_HIGH
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  FILL_BLANK
+  SHORT_ANSWER
+  COMPREHENSIVE
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum PaperType {
+  EXAM
+  MOCK
+  PRACTICE
+  SCHOOL_BASED
+}
+
+enum FileCategory {
+  TEACHING_MATERIAL
+  PAPER
+  ANSWER
+  HANDOUT
+  OTHER
+}
+
+enum LessonStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum MasteryStatus {
+  NEW
+  REVIEWING
+  MASTERED
+}
+
+model Institution {
+  id         String      @id @default(uuid()) @db.Uuid
+  code       String      @unique @db.VarChar(64)
+  name       String      @db.VarChar(160)
+  createdAt  DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime    @updatedAt @db.Timestamptz(3)
+  users      User[]
+  teachers   Teacher[]
+  students   Student[]
+  papers     Paper[]
+  questions  Question[]
+  fileAssets FileAsset[]
+  timetables Timetable[]
+}
+
+model User {
+  id               String      @id @default(uuid()) @db.Uuid
+  institutionId    String      @db.Uuid
+  email            String?     @db.VarChar(255)
+  phone            String?     @db.VarChar(32)
+  passwordHash     String?     @db.VarChar(255)
+  displayName      String      @db.VarChar(100)
+  role             UserRole
+  active           Boolean     @default(true)
+  lastLoginAt      DateTime?   @db.Timestamptz(3)
+  createdAt        DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime    @updatedAt @db.Timestamptz(3)
+  institution      Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  teacher          Teacher?
+  student          Student?
+  createdQuestions Question[]  @relation("QuestionCreator")
+  createdPapers    Paper[]     @relation("PaperCreator")
+  uploadedFiles    FileAsset[] @relation("FileUploader")
+
+  @@unique([institutionId, email])
+  @@unique([institutionId, phone])
+  @@index([institutionId, role])
+}
+
+model Teacher {
+  id              String           @id @default(uuid()) @db.Uuid
+  institutionId   String           @db.Uuid
+  userId          String           @unique @db.Uuid
+  employeeNo      String?          @db.VarChar(64)
+  title           String?          @db.VarChar(100)
+  createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(3)
+  institution     Institution      @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjects        TeacherSubject[]
+  lessons         Lesson[]
+  profilesUpdated StudentProfile[] @relation("ProfileUpdater")
+
+  @@unique([institutionId, employeeNo])
+  @@index([institutionId])
+}
+
+model Student {
+  id                String          @id @default(uuid()) @db.Uuid
+  institutionId     String          @db.Uuid
+  userId            String          @unique @db.Uuid
+  studentNo         String?         @db.VarChar(64)
+  gradeId           String          @db.Uuid
+  regionId          String?         @db.Uuid
+  schoolName        String?         @db.VarChar(160)
+  createdAt         DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime        @updatedAt @db.Timestamptz(3)
+  institution       Institution     @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grade             Grade           @relation(fields: [gradeId], references: [id], onDelete: Restrict)
+  region            Region?         @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  profile           StudentProfile?
+  lessonEnrollments LessonStudent[]
+  mistakes          Mistake[]
+
+  @@unique([institutionId, studentNo])
+  @@index([gradeId])
+  @@index([regionId])
+}
+
+model Subject {
+  id              String           @id @default(uuid()) @db.Uuid
+  code            String           @unique @db.VarChar(64)
+  name            String           @unique @db.VarChar(64)
+  createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(3)
+  teachers        TeacherSubject[]
+  knowledgePoints KnowledgePoint[]
+  papers          Paper[]
+  questions       Question[]
+  fileAssets      FileAsset[]
+  lessons         Lesson[]
+}
+
+model Grade {
+  id              String           @id @default(uuid()) @db.Uuid
+  code            String           @unique @db.VarChar(64)
+  name            String           @unique @db.VarChar(64)
+  stage           EducationStage
+  level           Int
+  createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(3)
+  students        Student[]
+  knowledgePoints KnowledgePoint[]
+  papers          Paper[]
+  questions       Question[]
+  fileAssets      FileAsset[]
+  lessons         Lesson[]
+
+  @@unique([stage, level])
+}
+
+model Region {
+  id         String      @id @default(uuid()) @db.Uuid
+  code       String      @unique @db.VarChar(12)
+  name       String      @unique @db.VarChar(64)
+  createdAt  DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime    @updatedAt @db.Timestamptz(3)
+  students   Student[]
+  papers     Paper[]
+  questions  Question[]
+  fileAssets FileAsset[]
+}
+
+model KnowledgePoint {
+  id            String                   @id @default(uuid()) @db.Uuid
+  subjectId     String                   @db.Uuid
+  gradeId       String?                  @db.Uuid
+  parentId      String?                  @db.Uuid
+  code          String                   @db.VarChar(100)
+  name          String                   @db.VarChar(160)
+  description   String?                  @db.Text
+  sortOrder     Int                      @default(0)
+  createdAt     DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime                 @updatedAt @db.Timestamptz(3)
+  subject       Subject                  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  grade         Grade?                   @relation(fields: [gradeId], references: [id], onDelete: SetNull)
+  parent        KnowledgePoint?          @relation("KnowledgePointTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children      KnowledgePoint[]         @relation("KnowledgePointTree")
+  questionLinks QuestionKnowledgePoint[]
+
+  @@unique([subjectId, code])
+  @@index([gradeId])
+  @@index([parentId])
+}
+
+model TeacherSubject {
+  teacherId String   @db.Uuid
+  subjectId String   @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@id([teacherId, subjectId])
+  @@index([subjectId])
+}
+
+model Question {
+  id             String                   @id @default(uuid()) @db.Uuid
+  institutionId  String?                  @db.Uuid
+  subjectId      String                   @db.Uuid
+  gradeId        String?                  @db.Uuid
+  regionId       String?                  @db.Uuid
+  createdById    String?                  @db.Uuid
+  type           QuestionType
+  status         ContentStatus            @default(DRAFT)
+  stem           String                   @db.Text
+  answer         Json?
+  analysis       String?                  @db.Text
+  difficulty     Int?
+  source         String?                  @db.VarChar(255)
+  createdAt      DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime                 @updatedAt @db.Timestamptz(3)
+  institution    Institution?             @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+  subject        Subject                  @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  grade          Grade?                   @relation(fields: [gradeId], references: [id], onDelete: SetNull)
+  region         Region?                  @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  createdBy      User?                    @relation("QuestionCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  knowledgeLinks QuestionKnowledgePoint[]
+  paperLinks     PaperQuestion[]
+  mistakes       Mistake[]
+
+  @@index([subjectId, gradeId, status])
+  @@index([regionId])
+  @@index([institutionId])
+}
+
+model QuestionKnowledgePoint {
+  questionId       String         @db.Uuid
+  knowledgePointId String         @db.Uuid
+  question         Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  knowledgePoint   KnowledgePoint @relation(fields: [knowledgePointId], references: [id], onDelete: Cascade)
+
+  @@id([questionId, knowledgePointId])
+  @@index([knowledgePointId])
+}
+
+model Paper {
+  id            String          @id @default(uuid()) @db.Uuid
+  institutionId String?         @db.Uuid
+  subjectId     String          @db.Uuid
+  gradeId       String          @db.Uuid
+  regionId      String?         @db.Uuid
+  createdById   String?         @db.Uuid
+  title         String          @db.VarChar(255)
+  year          Int?
+  type          PaperType
+  status        ContentStatus   @default(DRAFT)
+  createdAt     DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime        @updatedAt @db.Timestamptz(3)
+  institution   Institution?    @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+  subject       Subject         @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  grade         Grade           @relation(fields: [gradeId], references: [id], onDelete: Restrict)
+  region        Region?         @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  createdBy     User?           @relation("PaperCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  questionLinks PaperQuestion[]
+
+  @@index([subjectId, gradeId, status])
+  @@index([regionId])
+  @@index([institutionId])
+}
+
+model PaperQuestion {
+  paperId    String   @db.Uuid
+  questionId String   @db.Uuid
+  sortOrder  Int
+  score      Decimal? @db.Decimal(6, 2)
+  paper      Paper    @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  @@id([paperId, questionId])
+  @@unique([paperId, sortOrder])
+  @@index([questionId])
+}
+
+model FileAsset {
+  id            String       @id @default(uuid()) @db.Uuid
+  institutionId String       @db.Uuid
+  uploadedById  String?      @db.Uuid
+  subjectId     String?      @db.Uuid
+  gradeId       String?      @db.Uuid
+  regionId      String?      @db.Uuid
+  name          String       @db.VarChar(255)
+  storageKey    String       @unique @db.VarChar(500)
+  mimeType      String       @db.VarChar(160)
+  size          BigInt
+  category      FileCategory
+  createdAt     DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime     @updatedAt @db.Timestamptz(3)
+  institution   Institution  @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  uploadedBy    User?        @relation("FileUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  subject       Subject?     @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  grade         Grade?       @relation(fields: [gradeId], references: [id], onDelete: SetNull)
+  region        Region?      @relation(fields: [regionId], references: [id], onDelete: SetNull)
+
+  @@index([institutionId, category])
+  @@index([subjectId, gradeId])
+  @@index([regionId])
+}
+
+model Timetable {
+  id            String      @id @default(uuid()) @db.Uuid
+  institutionId String      @db.Uuid
+  name          String      @db.VarChar(160)
+  startDate     DateTime    @db.Date
+  endDate       DateTime    @db.Date
+  createdAt     DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime    @updatedAt @db.Timestamptz(3)
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  lessons       Lesson[]
+
+  @@index([institutionId, startDate, endDate])
+}
+
+model Lesson {
+  id          String          @id @default(uuid()) @db.Uuid
+  timetableId String          @db.Uuid
+  teacherId   String          @db.Uuid
+  subjectId   String          @db.Uuid
+  gradeId     String?         @db.Uuid
+  classroom   String?         @db.VarChar(100)
+  startsAt    DateTime        @db.Timestamptz(3)
+  endsAt      DateTime        @db.Timestamptz(3)
+  status      LessonStatus    @default(SCHEDULED)
+  createdAt   DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime        @updatedAt @db.Timestamptz(3)
+  timetable   Timetable       @relation(fields: [timetableId], references: [id], onDelete: Cascade)
+  teacher     Teacher         @relation(fields: [teacherId], references: [id], onDelete: Restrict)
+  subject     Subject         @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  grade       Grade?          @relation(fields: [gradeId], references: [id], onDelete: SetNull)
+  students    LessonStudent[]
+  mistakes    Mistake[]
+
+  @@index([timetableId, startsAt])
+  @@index([teacherId, startsAt, endsAt])
+  @@index([subjectId, gradeId])
+}
+
+model LessonStudent {
+  lessonId  String   @db.Uuid
+  studentId String   @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([lessonId, studentId])
+  @@index([studentId])
+}
+
+model StudentProfile {
+  id          String   @id @default(uuid()) @db.Uuid
+  studentId   String   @unique @db.Uuid
+  updatedById String?  @db.Uuid
+  summary     String?  @db.Text
+  goals       String?  @db.Text
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  updatedBy   Teacher? @relation("ProfileUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([updatedById])
+}
+
+model Mistake {
+  id          String        @id @default(uuid()) @db.Uuid
+  studentId   String        @db.Uuid
+  questionId  String        @db.Uuid
+  lessonId    String?       @db.Uuid
+  status      MasteryStatus @default(NEW)
+  wrongAnswer Json?
+  notes       String?       @db.Text
+  occurredAt  DateTime      @default(now()) @db.Timestamptz(3)
+  resolvedAt  DateTime?     @db.Timestamptz(3)
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
+  student     Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  question    Question      @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  lesson      Lesson?       @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
+  @@index([studentId, status, occurredAt])
+  @@index([questionId])
+  @@index([lessonId])
+}
