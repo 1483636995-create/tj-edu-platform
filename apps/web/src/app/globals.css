@@ -25,7 +25,13 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
 }
 
 a {
@@ -93,6 +99,14 @@ select {
   color: var(--text);
 }
 
+.field input:focus-visible,
+.filter-strip select:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid rgba(15, 118, 110, 0.22);
+  outline-offset: 2px;
+}
+
 .primary-button {
   min-height: 44px;
   border: 0;
@@ -105,6 +119,18 @@ select {
 
 .primary-button:hover {
   background: var(--accent-strong);
+}
+
+.primary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.64;
+}
+
+.form-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .login-aside {
@@ -206,6 +232,52 @@ select {
 .page-header p {
   margin: 6px 0 0;
   color: var(--muted);
+}
+
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.user-identity {
+  display: grid;
+  gap: 3px;
+  text-align: right;
+}
+
+.user-identity strong {
+  font-size: 14px;
+}
+
+.user-identity span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.secondary-button {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 14px;
+  background: var(--surface);
+  color: #344054;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.secondary-button:hover {
+  border-color: #98a2b3;
+  background: var(--surface-muted);
+}
+
+.auth-loading {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  color: var(--muted);
+  font-weight: 600;
 }
 
 .status-pill {
@@ -402,5 +474,14 @@ select {
   .topbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .topbar-user {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .user-identity {
+    text-align: left;
   }
 }

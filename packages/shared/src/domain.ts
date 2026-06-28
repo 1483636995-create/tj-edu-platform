@@ -34,6 +34,24 @@ export type TianjinRegion = (typeof TIANJIN_REGIONS)[number];
 
 export type UserRole = 'admin' | 'academic_admin' | 'teacher' | 'student';
 
+export interface AuthUser {
+  id: string;
+  institutionId: string;
+  institutionName: string;
+  displayName: string;
+  role: UserRole;
+}
+
+export interface AuthSession {
+  accessToken: string;
+  expiresIn: number;
+  user: AuthUser;
+}
+
+export interface LogoutResult {
+  success: true;
+}
+
 export interface HealthPayload {
   status: 'ok';
   service: string;

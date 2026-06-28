@@ -8,10 +8,6 @@
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true,
-    "baseUrl": ".",
-    "paths": {
-      "@tj-edu/shared": ["packages/shared/src"]
-    }
+    "skipLibCheck": true
   }
 }
