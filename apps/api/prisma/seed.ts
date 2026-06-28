@@ -1,14 +1,21 @@
 import { PrismaPg } from '@prisma/adapter-pg';
+import { hash } from 'bcryptjs';
 import { config as loadEnv } from 'dotenv';
 import { resolve } from 'node:path';
-import { EducationStage, PrismaClient } from '../src/generated/prisma/client';
+import { EducationStage, PrismaClient, UserRole } from '../src/generated/prisma/client';
 
 loadEnv({ path: resolve(__dirname, '../../../.env') });
 
 const databaseUrl = process.env.DATABASE_URL;
+const adminEmail = process.env.SEED_ADMIN_EMAIL ?? 'admin@tj-edu.local';
+const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'ChangeMe123!';
 
 if (!databaseUrl) {
   throw new Error('DATABASE_URL is required to seed the database.');
+}
+
+if (adminPassword.length < 8) {
+  throw new Error('SEED_ADMIN_PASSWORD must contain at least 8 characters.');
 }
 
 const adapter = new PrismaPg({ connectionString: databaseUrl });
@@ -75,10 +82,28 @@ const knowledgePoints = [
 ] as const;
 
 async function main() {
-  await prisma.institution.upsert({
+  const institution = await prisma.institution.upsert({
     where: { code: 'demo' },
     update: { name: '天津教辅平台示范机构' },
     create: { code: 'demo', name: '天津教辅平台示范机构' }
+  });
+
+  const passwordHash = await hash(adminPassword, 12);
+  await prisma.user.upsert({
+    where: { institutionId_email: { institutionId: institution.id, email: adminEmail } },
+    update: {
+      displayName: '平台管理员',
+      passwordHash,
+      role: UserRole.ADMIN,
+      active: true
+    },
+    create: {
+      institutionId: institution.id,
+      email: adminEmail,
+      displayName: '平台管理员',
+      passwordHash,
+      role: UserRole.ADMIN
+    }
   });
 
   const subjectRecords = new Map<string, string>();

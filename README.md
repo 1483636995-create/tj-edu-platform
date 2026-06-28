@@ -45,7 +45,9 @@ docs/        # 需求、架构、接口和部署文档
 ### Web 后台
 
 - 已初始化 `apps/web` Next.js + React + TypeScript 后台框架。
-- 已提供登录页、仪表盘、题库、讲义、课表、学生档案、文件库页面壳子。
+- 已提供仪表盘、题库、讲义、课表、学生档案、文件库页面壳子。
+- 登录页已连接真实认证 API，Token 会在本地保存并在页面加载时校验。
+- 后台路由会拦截未登录访问，并根据管理员、教务、教师、学生角色控制导航和页面权限。
 - 已提供统一侧边导航、基础视觉样式、空状态和示例数据。
 - 题库筛选已复用公共包中的天津学科和区域常量。
 
@@ -55,20 +57,24 @@ docs/        # 需求、架构、接口和部署文档
 - 已提供 `GET /health` 健康检查接口。
 - 已建立 auth、users、questions、files、timetable、students 模块目录。
 - 已接入 Prisma 7、PostgreSQL 驱动适配器和 NestJS 全局数据库模块。
+- 已提供登录、当前用户、Token 刷新和退出接口。
+- 已启用全局 JWT 认证、公开路由标记、角色装饰器和 RBAC Guard。
+- 已启用 DTO 白名单校验，并为认证服务和角色 Guard 添加单元测试。
 - 已配置 CORS，支持从 Web 后台访问 API。
 
 ### 数据库与本地环境
 
 - 已建立机构、用户、教师、学生、学科、年级、天津区域和知识点核心模型。
 - 已为题库、试卷、文件、课表、学生档案和错题本建立数据模型及关联表。
-- 已提供首个 PostgreSQL 迁移和可重复执行的 seed，初始化九大学科、六个年级、天津 16 个区和示例知识点。
+- 已提供首个 PostgreSQL 迁移和可重复执行的 seed，初始化管理员、九大学科、六个年级、天津 16 个区和示例知识点。
 - 已提供 Docker Compose 草案，可在本地启动 PostgreSQL 16 和 Redis 7。
 - 本地环境、数据库命令和部署约定见 `docs/local-development.md`。
 
 ### 公共包
 
 - 已初始化 `packages/shared` 公共包。
-- 已提供天津九大学科、天津区域、用户角色和健康检查相关类型。
+- 已提供天津九大学科、天津区域、用户角色、认证会话和健康检查相关类型。
+- shared 已按标准 workspace 包输出 `dist`，供 Web 和 API 共同消费。
 
 ## 开发阶段
 
@@ -104,6 +110,8 @@ pnpm test
 - `GET http://localhost:4000/health`：API 健康检查。
 
 Windows PowerShell 可使用 `Copy-Item .env.example .env` 复制环境变量文件。完整说明见 `docs/local-development.md`，当前 backlog 见 `docs/backlog.md`。
+
+本地 seed 管理员默认为 `admin@tj-edu.local` / `ChangeMe123!`，仅用于开发环境，部署前必须通过环境变量替换。
 
 ## 文档维护约定
 

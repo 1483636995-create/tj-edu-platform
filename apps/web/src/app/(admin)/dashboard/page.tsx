@@ -7,7 +7,7 @@ const metrics = [
 
 const upcomingWork = [
   ['工程基础', '初始化 monorepo、Web、API'],
-  ['数据建模', 'Prisma 核心模型与 seed'],
+  ['认证权限', 'JWT 登录、四角色权限与路由保护'],
   ['题库 MVP', '筛选、列表、详情和组题预留']
 ];
 
