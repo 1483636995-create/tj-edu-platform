@@ -90,7 +90,10 @@ select {
 }
 
 .field input,
-.filter-strip select {
+.filter-strip select,
+.filter-strip input,
+.file-upload-fields select,
+.file-upload-fields input {
   min-height: 42px;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -101,6 +104,9 @@ select {
 
 .field input:focus-visible,
 .filter-strip select:focus-visible,
+.filter-strip input:focus-visible,
+.file-upload-fields select:focus-visible,
+.file-upload-fields input:focus-visible,
 button:focus-visible,
 a:focus-visible {
   outline: 3px solid rgba(15, 118, 110, 0.22);
@@ -384,6 +390,84 @@ a:focus-visible {
   margin-bottom: 14px;
 }
 
+.file-upload-panel {
+  margin-bottom: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  background: var(--surface);
+}
+
+.file-upload-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.file-upload-heading h2,
+.file-upload-heading p {
+  margin: 0;
+}
+
+.file-upload-heading h2 {
+  font-size: 18px;
+}
+
+.file-upload-heading p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.file-upload-heading .primary-button {
+  min-width: 96px;
+  padding: 0 18px;
+}
+
+.file-upload-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.file-upload-fields label {
+  display: grid;
+  gap: 6px;
+}
+
+.file-upload-fields label > span {
+  color: #344054;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.file-upload-fields .file-picker {
+  grid-column: span 2;
+}
+
+.file-upload-fields input[type='file'] {
+  padding: 8px 10px;
+}
+
+.form-message {
+  margin: 12px 0 0;
+  color: var(--accent-strong);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.file-filter-strip {
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+}
+
+.file-name-cell {
+  min-width: 220px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
 .table-scroll {
   overflow-x: auto;
 }
@@ -576,6 +660,7 @@ a:focus-visible {
 
   .metric-grid,
   .filter-strip,
+  .file-upload-fields,
   .question-metadata {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -588,14 +673,20 @@ a:focus-visible {
 
   .metric-grid,
   .filter-strip,
+  .file-upload-fields,
   .question-metadata {
     grid-template-columns: 1fr;
   }
 
   .page-header,
+  .file-upload-heading,
   .topbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .file-upload-fields .file-picker {
+    grid-column: auto;
   }
 
   .topbar-user {

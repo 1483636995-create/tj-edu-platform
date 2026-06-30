@@ -186,21 +186,22 @@ model Region {
 }
 
 model KnowledgePoint {
-  id            String                   @id @default(uuid()) @db.Uuid
-  subjectId     String                   @db.Uuid
-  gradeId       String?                  @db.Uuid
-  parentId      String?                  @db.Uuid
-  code          String                   @db.VarChar(100)
-  name          String                   @db.VarChar(160)
-  description   String?                  @db.Text
-  sortOrder     Int                      @default(0)
-  createdAt     DateTime                 @default(now()) @db.Timestamptz(3)
-  updatedAt     DateTime                 @updatedAt @db.Timestamptz(3)
-  subject       Subject                  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  grade         Grade?                   @relation(fields: [gradeId], references: [id], onDelete: SetNull)
-  parent        KnowledgePoint?          @relation("KnowledgePointTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children      KnowledgePoint[]         @relation("KnowledgePointTree")
+  id            String                    @id @default(uuid()) @db.Uuid
+  subjectId     String                    @db.Uuid
+  gradeId       String?                   @db.Uuid
+  parentId      String?                   @db.Uuid
+  code          String                    @db.VarChar(100)
+  name          String                    @db.VarChar(160)
+  description   String?                   @db.Text
+  sortOrder     Int                       @default(0)
+  createdAt     DateTime                  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime                  @updatedAt @db.Timestamptz(3)
+  subject       Subject                   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  grade         Grade?                    @relation(fields: [gradeId], references: [id], onDelete: SetNull)
+  parent        KnowledgePoint?           @relation("KnowledgePointTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children      KnowledgePoint[]          @relation("KnowledgePointTree")
   questionLinks QuestionKnowledgePoint[]
+  fileLinks     FileAssetKnowledgePoint[]
 
   @@unique([subjectId, code])
   @@index([gradeId])
@@ -297,28 +298,39 @@ model PaperQuestion {
 }
 
 model FileAsset {
-  id            String       @id @default(uuid()) @db.Uuid
-  institutionId String       @db.Uuid
-  uploadedById  String?      @db.Uuid
-  subjectId     String?      @db.Uuid
-  gradeId       String?      @db.Uuid
-  regionId      String?      @db.Uuid
-  name          String       @db.VarChar(255)
-  storageKey    String       @unique @db.VarChar(500)
-  mimeType      String       @db.VarChar(160)
-  size          BigInt
-  category      FileCategory
-  createdAt     DateTime     @default(now()) @db.Timestamptz(3)
-  updatedAt     DateTime     @updatedAt @db.Timestamptz(3)
-  institution   Institution  @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  uploadedBy    User?        @relation("FileUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
-  subject       Subject?     @relation(fields: [subjectId], references: [id], onDelete: SetNull)
-  grade         Grade?       @relation(fields: [gradeId], references: [id], onDelete: SetNull)
-  region        Region?      @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  id             String                    @id @default(uuid()) @db.Uuid
+  institutionId  String                    @db.Uuid
+  uploadedById   String?                   @db.Uuid
+  subjectId      String?                   @db.Uuid
+  gradeId        String?                   @db.Uuid
+  regionId       String?                   @db.Uuid
+  name           String                    @db.VarChar(255)
+  storageKey     String                    @unique @db.VarChar(500)
+  mimeType       String                    @db.VarChar(160)
+  size           BigInt
+  category       FileCategory
+  createdAt      DateTime                  @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime                  @updatedAt @db.Timestamptz(3)
+  institution    Institution               @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  uploadedBy     User?                     @relation("FileUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  subject        Subject?                  @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  grade          Grade?                    @relation(fields: [gradeId], references: [id], onDelete: SetNull)
+  region         Region?                   @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  knowledgeLinks FileAssetKnowledgePoint[]
 
   @@index([institutionId, category])
   @@index([subjectId, gradeId])
   @@index([regionId])
+}
+
+model FileAssetKnowledgePoint {
+  fileAssetId      String         @db.Uuid
+  knowledgePointId String         @db.Uuid
+  fileAsset        FileAsset      @relation(fields: [fileAssetId], references: [id], onDelete: Cascade)
+  knowledgePoint   KnowledgePoint @relation(fields: [knowledgePointId], references: [id], onDelete: Cascade)
+
+  @@id([fileAssetId, knowledgePointId])
+  @@index([knowledgePointId])
 }
 
 model Timetable {
