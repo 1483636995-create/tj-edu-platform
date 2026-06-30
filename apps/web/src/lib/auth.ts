@@ -19,7 +19,11 @@ export function clearStoredToken() {
   window.localStorage.removeItem(TOKEN_KEY);
 }
 
-async function request<T>(path: string, init: RequestInit = {}, token?: string): Promise<T> {
+export async function apiRequest<T>(
+  path: string,
+  init: RequestInit = {},
+  token?: string
+): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
@@ -39,16 +43,16 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string):
 }
 
 export function login(identifier: string, password: string) {
-  return request<AuthSession>('/auth/login', {
+  return apiRequest<AuthSession>('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ identifier, password })
   });
 }
 
 export function getCurrentUser(token: string) {
-  return request<AuthUser>('/auth/me', {}, token);
+  return apiRequest<AuthUser>('/auth/me', {}, token);
 }
 
 export function logout(token: string) {
-  return request<LogoutResult>('/auth/logout', { method: 'POST' }, token);
+  return apiRequest<LogoutResult>('/auth/logout', { method: 'POST' }, token);
 }
