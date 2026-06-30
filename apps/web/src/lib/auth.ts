@@ -1,6 +1,6 @@
 import type { AuthSession, AuthUser, LogoutResult } from '@tj-edu/shared';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
 const TOKEN_KEY = 'tj-edu-platform-access-token';
 
 interface ApiErrorPayload {
@@ -24,10 +24,11 @@ export async function apiRequest<T>(
   init: RequestInit = {},
   token?: string
 ): Promise<T> {
+  const isFormData = init.body instanceof FormData;
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
-      'Content-Type': 'application/json',
+      ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
       ...init.headers,
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     }
