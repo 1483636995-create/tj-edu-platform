@@ -3,8 +3,20 @@ import type { AuthSession, AuthUser, LogoutResult } from '@tj-edu/shared';
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
 const TOKEN_KEY = 'tj-edu-platform-access-token';
 
-interface ApiErrorPayload {
+export interface ApiErrorPayload {
   message?: string | string[];
+  conflicts?: unknown[];
+}
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly payload: ApiErrorPayload
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
 }
 
 export function getStoredToken() {
@@ -37,7 +49,7 @@ export async function apiRequest<T>(
   if (!response.ok) {
     const payload = (await response.json().catch(() => ({}))) as ApiErrorPayload;
     const message = Array.isArray(payload.message) ? payload.message[0] : payload.message;
-    throw new Error(message ?? '请求失败，请稍后重试。');
+    throw new ApiError(message ?? '请求失败，请稍后重试。', response.status, payload);
   }
 
   return response.json() as Promise<T>;

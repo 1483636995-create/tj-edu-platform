@@ -55,6 +55,11 @@ enum LessonStatus {
   CANCELLED
 }
 
+enum LessonType {
+  GROUP
+  ONE_ON_ONE
+}
+
 enum MasteryStatus {
   NEW
   REVIEWING
@@ -353,6 +358,8 @@ model Lesson {
   teacherId   String          @db.Uuid
   subjectId   String          @db.Uuid
   gradeId     String?         @db.Uuid
+  title       String          @db.VarChar(160)
+  type        LessonType      @default(GROUP)
   classroom   String?         @db.VarChar(100)
   startsAt    DateTime        @db.Timestamptz(3)
   endsAt      DateTime        @db.Timestamptz(3)

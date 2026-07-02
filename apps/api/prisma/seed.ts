@@ -5,6 +5,8 @@ import { resolve } from 'node:path';
 import {
   ContentStatus,
   EducationStage,
+  LessonStatus,
+  LessonType,
   PaperType,
   PrismaClient,
   QuestionType,
@@ -352,6 +354,247 @@ async function main() {
       where: { paperId_questionId: { paperId, questionId: question.id } },
       update: { sortOrder: 1, score: 10 },
       create: { paperId, questionId: question.id, sortOrder: 1, score: 10 }
+    });
+  }
+
+  const teacherSeeds = [
+    {
+      userId: '30000000-0000-4000-8000-000000000101',
+      teacherId: '31000000-0000-4000-8000-000000000101',
+      email: 'teacher.wang@tj-edu.local',
+      displayName: '王老师',
+      employeeNo: 'T1001',
+      subjectCodes: ['math']
+    },
+    {
+      userId: '30000000-0000-4000-8000-000000000102',
+      teacherId: '31000000-0000-4000-8000-000000000102',
+      email: 'teacher.li@tj-edu.local',
+      displayName: '李老师',
+      employeeNo: 'T1002',
+      subjectCodes: ['physics', 'english']
+    }
+  ] as const;
+  const teacherRecords = new Map<string, string>();
+
+  for (const teacherSeed of teacherSeeds) {
+    await prisma.user.upsert({
+      where: { id: teacherSeed.userId },
+      update: {
+        institutionId: institution.id,
+        email: teacherSeed.email,
+        displayName: teacherSeed.displayName,
+        role: UserRole.TEACHER,
+        active: true
+      },
+      create: {
+        id: teacherSeed.userId,
+        institutionId: institution.id,
+        email: teacherSeed.email,
+        displayName: teacherSeed.displayName,
+        role: UserRole.TEACHER
+      }
+    });
+
+    const teacher = await prisma.teacher.upsert({
+      where: { userId: teacherSeed.userId },
+      update: { institutionId: institution.id, employeeNo: teacherSeed.employeeNo },
+      create: {
+        id: teacherSeed.teacherId,
+        institutionId: institution.id,
+        userId: teacherSeed.userId,
+        employeeNo: teacherSeed.employeeNo
+      }
+    });
+    teacherRecords.set(teacherSeed.employeeNo, teacher.id);
+
+    for (const subjectCode of teacherSeed.subjectCodes) {
+      const subjectId = subjectRecords.get(subjectCode);
+      if (!subjectId) {
+        throw new Error(`Missing subject ${subjectCode} for teacher seed.`);
+      }
+      await prisma.teacherSubject.upsert({
+        where: { teacherId_subjectId: { teacherId: teacher.id, subjectId } },
+        update: {},
+        create: { teacherId: teacher.id, subjectId }
+      });
+    }
+  }
+
+  const studentSeeds = [
+    {
+      userId: '30000000-0000-4000-8000-000000000201',
+      studentId: '32000000-0000-4000-8000-000000000201',
+      displayName: '陈晨',
+      studentNo: 'S2001',
+      gradeCode: 'junior-3'
+    },
+    {
+      userId: '30000000-0000-4000-8000-000000000202',
+      studentId: '32000000-0000-4000-8000-000000000202',
+      displayName: '周然',
+      studentNo: 'S2002',
+      gradeCode: 'junior-2'
+    },
+    {
+      userId: '30000000-0000-4000-8000-000000000203',
+      studentId: '32000000-0000-4000-8000-000000000203',
+      displayName: '赵一诺',
+      studentNo: 'S2003',
+      gradeCode: 'junior-1'
+    }
+  ] as const;
+  const studentRecords = new Map<string, string>();
+
+  for (const studentSeed of studentSeeds) {
+    const gradeId = gradeRecords.get(studentSeed.gradeCode);
+    if (!gradeId) {
+      throw new Error(`Missing grade ${studentSeed.gradeCode} for student seed.`);
+    }
+
+    await prisma.user.upsert({
+      where: { id: studentSeed.userId },
+      update: {
+        institutionId: institution.id,
+        displayName: studentSeed.displayName,
+        role: UserRole.STUDENT,
+        active: true
+      },
+      create: {
+        id: studentSeed.userId,
+        institutionId: institution.id,
+        displayName: studentSeed.displayName,
+        role: UserRole.STUDENT
+      }
+    });
+
+    const student = await prisma.student.upsert({
+      where: { userId: studentSeed.userId },
+      update: {
+        institutionId: institution.id,
+        studentNo: studentSeed.studentNo,
+        gradeId
+      },
+      create: {
+        id: studentSeed.studentId,
+        institutionId: institution.id,
+        userId: studentSeed.userId,
+        studentNo: studentSeed.studentNo,
+        gradeId
+      }
+    });
+    studentRecords.set(studentSeed.studentNo, student.id);
+  }
+
+  const timetable = await prisma.timetable.upsert({
+    where: { id: '40000000-0000-4000-8000-000000000001' },
+    update: {
+      institutionId: institution.id,
+      name: '2026 暑期课表',
+      startDate: new Date('2026-06-01T00:00:00.000Z'),
+      endDate: new Date('2026-08-31T00:00:00.000Z')
+    },
+    create: {
+      id: '40000000-0000-4000-8000-000000000001',
+      institutionId: institution.id,
+      name: '2026 暑期课表',
+      startDate: new Date('2026-06-01T00:00:00.000Z'),
+      endDate: new Date('2026-08-31T00:00:00.000Z')
+    }
+  });
+
+  const lessonSeeds = [
+    {
+      id: '41000000-0000-4000-8000-000000000001',
+      title: '九年级数学提高班',
+      type: LessonType.GROUP,
+      teacherNo: 'T1001',
+      subjectCode: 'math',
+      gradeCode: 'junior-3',
+      classroom: 'A301',
+      startsAt: '2026-06-29T10:30:00.000Z',
+      endsAt: '2026-06-29T12:00:00.000Z',
+      studentNos: ['S2001']
+    },
+    {
+      id: '41000000-0000-4000-8000-000000000002',
+      title: '八年级物理一对一',
+      type: LessonType.ONE_ON_ONE,
+      teacherNo: 'T1002',
+      subjectCode: 'physics',
+      gradeCode: 'junior-2',
+      classroom: 'B202',
+      startsAt: '2026-07-01T11:00:00.000Z',
+      endsAt: '2026-07-01T12:30:00.000Z',
+      studentNos: ['S2002']
+    },
+    {
+      id: '41000000-0000-4000-8000-000000000003',
+      title: '七年级英语阅读班',
+      type: LessonType.GROUP,
+      teacherNo: 'T1002',
+      subjectCode: 'english',
+      gradeCode: 'junior-1',
+      classroom: 'A205',
+      startsAt: '2026-07-02T10:30:00.000Z',
+      endsAt: '2026-07-02T12:00:00.000Z',
+      studentNos: ['S2003']
+    },
+    {
+      id: '41000000-0000-4000-8000-000000000004',
+      title: '中考数学专题冲刺',
+      type: LessonType.GROUP,
+      teacherNo: 'T1001',
+      subjectCode: 'math',
+      gradeCode: 'junior-3',
+      classroom: 'A301',
+      startsAt: '2026-07-04T01:00:00.000Z',
+      endsAt: '2026-07-04T03:00:00.000Z',
+      studentNos: ['S2001']
+    }
+  ] as const;
+
+  for (const lessonSeed of lessonSeeds) {
+    const teacherId = teacherRecords.get(lessonSeed.teacherNo);
+    const subjectId = subjectRecords.get(lessonSeed.subjectCode);
+    const gradeId = gradeRecords.get(lessonSeed.gradeCode);
+    const studentIds = lessonSeed.studentNos.map((studentNo) => studentRecords.get(studentNo));
+    if (!teacherId || !subjectId || !gradeId || studentIds.some((id) => !id)) {
+      throw new Error(`Missing seed dependency for lesson ${lessonSeed.id}.`);
+    }
+
+    await prisma.lesson.upsert({
+      where: { id: lessonSeed.id },
+      update: {
+        timetableId: timetable.id,
+        teacherId,
+        subjectId,
+        gradeId,
+        title: lessonSeed.title,
+        type: lessonSeed.type,
+        classroom: lessonSeed.classroom,
+        startsAt: new Date(lessonSeed.startsAt),
+        endsAt: new Date(lessonSeed.endsAt),
+        status: LessonStatus.SCHEDULED
+      },
+      create: {
+        id: lessonSeed.id,
+        timetableId: timetable.id,
+        teacherId,
+        subjectId,
+        gradeId,
+        title: lessonSeed.title,
+        type: lessonSeed.type,
+        classroom: lessonSeed.classroom,
+        startsAt: new Date(lessonSeed.startsAt),
+        endsAt: new Date(lessonSeed.endsAt),
+        status: LessonStatus.SCHEDULED
+      }
+    });
+
+    await prisma.lessonStudent.deleteMany({ where: { lessonId: lessonSeed.id } });
+    await prisma.lessonStudent.createMany({
+      data: studentIds.map((studentId) => ({ lessonId: lessonSeed.id, studentId: studentId! }))
     });
   }
 }
