@@ -359,6 +359,56 @@ async function main() {
     });
   }
 
+  const builderPaperId = '10000000-0000-4000-8000-000000000101';
+  const builderSubjectId = subjectRecords.get('math');
+  const builderGradeId = gradeRecords.get('junior-3');
+  const builderRegionId = regionRecords.get('120101');
+  if (!builderSubjectId || !builderGradeId || !builderRegionId) {
+    throw new Error('Missing seed dependency for builder paper.');
+  }
+
+  await prisma.paper.upsert({
+    where: { id: builderPaperId },
+    update: {
+      institutionId: institution.id,
+      subjectId: builderSubjectId,
+      gradeId: builderGradeId,
+      regionId: builderRegionId,
+      createdById: admin.id,
+      title: '二次函数知识点组题草稿',
+      year: 2026,
+      type: PaperType.PRACTICE,
+      status: ContentStatus.DRAFT
+    },
+    create: {
+      id: builderPaperId,
+      institutionId: institution.id,
+      subjectId: builderSubjectId,
+      gradeId: builderGradeId,
+      regionId: builderRegionId,
+      createdById: admin.id,
+      title: '二次函数知识点组题草稿',
+      year: 2026,
+      type: PaperType.PRACTICE,
+      status: ContentStatus.DRAFT
+    }
+  });
+  await prisma.paperQuestion.upsert({
+    where: {
+      paperId_questionId: {
+        paperId: builderPaperId,
+        questionId: '20000000-0000-4000-8000-000000000001'
+      }
+    },
+    update: { sortOrder: 1, score: 10 },
+    create: {
+      paperId: builderPaperId,
+      questionId: '20000000-0000-4000-8000-000000000001',
+      sortOrder: 1,
+      score: 10
+    }
+  });
+
   const teacherSeeds = [
     {
       userId: '30000000-0000-4000-8000-000000000101',
