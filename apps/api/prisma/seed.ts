@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import {
   ContentStatus,
   EducationStage,
+  FileCategory,
   LessonStatus,
   LessonType,
   MasteryStatus,
@@ -727,6 +728,124 @@ async function main() {
       }
     });
   }
+
+  const fileAssetSeeds = [
+    {
+      id: '60000000-0000-4000-8000-000000000001',
+      subjectCode: 'math',
+      gradeCode: 'junior-3',
+      knowledgePointCode: 'quadratic-functions',
+      name: '二次函数图像讲义素材.pdf',
+      storageKey: 'seed/demo/math-quadratic-functions.pdf',
+      mimeType: 'application/pdf',
+      size: 128000,
+      category: FileCategory.TEACHING_MATERIAL
+    },
+    {
+      id: '60000000-0000-4000-8000-000000000002',
+      subjectCode: 'physics',
+      gradeCode: 'junior-2',
+      knowledgePointCode: 'mechanics-basics',
+      name: '力学基础课堂例题.docx',
+      storageKey: 'seed/demo/physics-mechanics-basics.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      size: 96000,
+      category: FileCategory.HANDOUT
+    }
+  ] as const;
+  const fileAssetRecords = new Map<string, string>();
+
+  for (const fileSeed of fileAssetSeeds) {
+    const subjectId = subjectRecords.get(fileSeed.subjectCode);
+    const gradeId = gradeRecords.get(fileSeed.gradeCode);
+    const knowledgePointId = knowledgePointRecords.get(fileSeed.knowledgePointCode);
+    if (!subjectId || !gradeId || !knowledgePointId) {
+      throw new Error(`Missing seed dependency for file asset ${fileSeed.id}.`);
+    }
+
+    await prisma.fileAsset.upsert({
+      where: { id: fileSeed.id },
+      update: {
+        institutionId: institution.id,
+        uploadedById: admin.id,
+        subjectId,
+        gradeId,
+        name: fileSeed.name,
+        storageKey: fileSeed.storageKey,
+        mimeType: fileSeed.mimeType,
+        size: BigInt(fileSeed.size),
+        category: fileSeed.category
+      },
+      create: {
+        id: fileSeed.id,
+        institutionId: institution.id,
+        uploadedById: admin.id,
+        subjectId,
+        gradeId,
+        name: fileSeed.name,
+        storageKey: fileSeed.storageKey,
+        mimeType: fileSeed.mimeType,
+        size: BigInt(fileSeed.size),
+        category: fileSeed.category
+      }
+    });
+    await prisma.fileAssetKnowledgePoint.upsert({
+      where: {
+        fileAssetId_knowledgePointId: { fileAssetId: fileSeed.id, knowledgePointId }
+      },
+      update: {},
+      create: { fileAssetId: fileSeed.id, knowledgePointId }
+    });
+    fileAssetRecords.set(fileSeed.id, fileSeed.id);
+  }
+
+  const handoutId = '70000000-0000-4000-8000-000000000001';
+  const handoutSubjectId = subjectRecords.get('math');
+  const handoutGradeId = gradeRecords.get('junior-3');
+  const handoutKnowledgePointId = knowledgePointRecords.get('quadratic-functions');
+  const handoutFileId = fileAssetRecords.get('60000000-0000-4000-8000-000000000001');
+  if (!handoutSubjectId || !handoutGradeId || !handoutKnowledgePointId || !handoutFileId) {
+    throw new Error('Missing seed dependency for handout draft.');
+  }
+
+  await prisma.handoutDraft.upsert({
+    where: { id: handoutId },
+    update: {
+      institutionId: institution.id,
+      createdById: admin.id,
+      subjectId: handoutSubjectId,
+      gradeId: handoutGradeId,
+      title: '九年级数学二次函数专题讲义',
+      objective: '围绕二次函数图像、对称轴和压轴题建模，形成课堂讲解与随堂练习结构。',
+      status: ContentStatus.DRAFT
+    },
+    create: {
+      id: handoutId,
+      institutionId: institution.id,
+      createdById: admin.id,
+      subjectId: handoutSubjectId,
+      gradeId: handoutGradeId,
+      title: '九年级数学二次函数专题讲义',
+      objective: '围绕二次函数图像、对称轴和压轴题建模，形成课堂讲解与随堂练习结构。',
+      status: ContentStatus.DRAFT
+    }
+  });
+  await prisma.handoutDraftKnowledgePoint.deleteMany({ where: { handoutDraftId: handoutId } });
+  await prisma.handoutDraftQuestion.deleteMany({ where: { handoutDraftId: handoutId } });
+  await prisma.handoutDraftFile.deleteMany({ where: { handoutDraftId: handoutId } });
+  await prisma.handoutDraftKnowledgePoint.create({
+    data: { handoutDraftId: handoutId, knowledgePointId: handoutKnowledgePointId, sortOrder: 0 }
+  });
+  await prisma.handoutDraftQuestion.create({
+    data: {
+      handoutDraftId: handoutId,
+      questionId: '20000000-0000-4000-8000-000000000001',
+      sortOrder: 0
+    }
+  });
+  await prisma.handoutDraftFile.create({
+    data: { handoutDraftId: handoutId, fileAssetId: handoutFileId, sortOrder: 0 }
+  });
 }
 
 main()
