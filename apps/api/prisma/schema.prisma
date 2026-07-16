@@ -79,6 +79,7 @@ model Institution {
   questions  Question[]
   fileAssets FileAsset[]
   timetables Timetable[]
+  handouts   HandoutDraft[]
 }
 
 model User {
@@ -99,6 +100,7 @@ model User {
   createdQuestions Question[]  @relation("QuestionCreator")
   createdPapers    Paper[]     @relation("PaperCreator")
   uploadedFiles    FileAsset[] @relation("FileUploader")
+  createdHandouts  HandoutDraft[] @relation("HandoutCreator")
 
   @@unique([institutionId, email])
   @@unique([institutionId, phone])
@@ -158,6 +160,7 @@ model Subject {
   questions       Question[]
   fileAssets      FileAsset[]
   lessons         Lesson[]
+  handouts        HandoutDraft[]
 }
 
 model Grade {
@@ -174,6 +177,7 @@ model Grade {
   questions       Question[]
   fileAssets      FileAsset[]
   lessons         Lesson[]
+  handouts        HandoutDraft[]
 
   @@unique([stage, level])
 }
@@ -207,6 +211,7 @@ model KnowledgePoint {
   children      KnowledgePoint[]          @relation("KnowledgePointTree")
   questionLinks QuestionKnowledgePoint[]
   fileLinks     FileAssetKnowledgePoint[]
+  handoutLinks  HandoutDraftKnowledgePoint[]
 
   @@unique([subjectId, code])
   @@index([gradeId])
@@ -248,6 +253,7 @@ model Question {
   knowledgeLinks QuestionKnowledgePoint[]
   paperLinks     PaperQuestion[]
   mistakes       Mistake[]
+  handoutLinks   HandoutDraftQuestion[]
 
   @@index([subjectId, gradeId, status])
   @@index([regionId])
@@ -322,6 +328,7 @@ model FileAsset {
   grade          Grade?                    @relation(fields: [gradeId], references: [id], onDelete: SetNull)
   region         Region?                   @relation(fields: [regionId], references: [id], onDelete: SetNull)
   knowledgeLinks FileAssetKnowledgePoint[]
+  handoutLinks   HandoutDraftFile[]
 
   @@index([institutionId, category])
   @@index([subjectId, gradeId])
@@ -423,4 +430,60 @@ model Mistake {
   @@index([studentId, status, occurredAt])
   @@index([questionId])
   @@index([lessonId])
+}
+
+model HandoutDraft {
+  id             String                       @id @default(uuid()) @db.Uuid
+  institutionId  String                       @db.Uuid
+  createdById    String?                      @db.Uuid
+  subjectId      String                       @db.Uuid
+  gradeId        String?                      @db.Uuid
+  title          String                       @db.VarChar(200)
+  objective      String?                      @db.Text
+  status         ContentStatus                @default(DRAFT)
+  createdAt      DateTime                     @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime                     @updatedAt @db.Timestamptz(3)
+  institution    Institution                  @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  createdBy      User?                        @relation("HandoutCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  subject        Subject                      @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  grade          Grade?                       @relation(fields: [gradeId], references: [id], onDelete: SetNull)
+  knowledgeLinks HandoutDraftKnowledgePoint[]
+  questionLinks  HandoutDraftQuestion[]
+  fileLinks      HandoutDraftFile[]
+
+  @@index([institutionId, status, updatedAt])
+  @@index([subjectId, gradeId])
+}
+
+model HandoutDraftKnowledgePoint {
+  handoutDraftId   String         @db.Uuid
+  knowledgePointId String         @db.Uuid
+  sortOrder        Int            @default(0)
+  handoutDraft     HandoutDraft   @relation(fields: [handoutDraftId], references: [id], onDelete: Cascade)
+  knowledgePoint   KnowledgePoint @relation(fields: [knowledgePointId], references: [id], onDelete: Restrict)
+
+  @@id([handoutDraftId, knowledgePointId])
+  @@index([knowledgePointId])
+}
+
+model HandoutDraftQuestion {
+  handoutDraftId String       @db.Uuid
+  questionId     String       @db.Uuid
+  sortOrder      Int          @default(0)
+  handoutDraft   HandoutDraft @relation(fields: [handoutDraftId], references: [id], onDelete: Cascade)
+  question       Question     @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  @@id([handoutDraftId, questionId])
+  @@index([questionId])
+}
+
+model HandoutDraftFile {
+  handoutDraftId String       @db.Uuid
+  fileAssetId    String       @db.Uuid
+  sortOrder      Int          @default(0)
+  handoutDraft   HandoutDraft @relation(fields: [handoutDraftId], references: [id], onDelete: Cascade)
+  fileAsset      FileAsset    @relation(fields: [fileAssetId], references: [id], onDelete: Restrict)
+
+  @@id([handoutDraftId, fileAssetId])
+  @@index([fileAssetId])
 }
