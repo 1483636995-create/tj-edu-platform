@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getStoredToken } from '../../../lib/auth';
 import {
   createHandout,
+  downloadHandoutExport,
   getHandout,
   getHandoutFilters,
   listHandouts,
@@ -71,6 +72,17 @@ function toggle(list: string[], value: string) {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 }
 
+function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export default function HandoutsPage() {
   const [options, setOptions] = useState<HandoutFilterOptions | null>(null);
   const [filters, setFilters] = useState<FilterState>(initialFilters);
@@ -80,6 +92,7 @@ export default function HandoutsPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -245,6 +258,25 @@ export default function HandoutsPage() {
     }
   }
 
+  async function exportHandout() {
+    if (!token || !detail) {
+      return;
+    }
+
+    setExporting(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const exported = await downloadHandoutExport(token, detail.id);
+      saveBlob(exported.blob, exported.filename);
+      setMessage('讲义导出文件已生成。');
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : '讲义导出失败。');
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <>
       <section className="page-header">
@@ -317,7 +349,7 @@ export default function HandoutsPage() {
                     <span>
                       <strong>{handout.title}</strong>
                       <small>
-                        {handout.subject.name} · {handout.grade?.name ?? '通用'} ·{' '}
+                        {handout.subject.name} / {handout.grade?.name ?? '通用'} /{' '}
                         {formatDate(handout.updatedAt)}
                       </small>
                     </span>
@@ -364,16 +396,26 @@ export default function HandoutsPage() {
           <div className="handout-editor-heading">
             <div>
               <h2>{detail ? '编辑讲义草稿' : '新建讲义草稿'}</h2>
-              <p>先组织内容结构，导出和复杂排版后续接入。</p>
+              <p>先组织内容结构，再导出为 Markdown 文件供排版和归档。</p>
             </div>
-            <button
-              className="primary-button"
-              disabled={saving || !form.subjectId || !form.title.trim()}
-              onClick={saveHandout}
-              type="button"
-            >
-              {saving ? '保存中' : '保存草稿'}
-            </button>
+            <div className="handout-editor-actions">
+              <button
+                className="secondary-button"
+                disabled={!detail || exporting}
+                onClick={exportHandout}
+                type="button"
+              >
+                {exporting ? '导出中' : '导出'}
+              </button>
+              <button
+                className="primary-button"
+                disabled={saving || !form.subjectId || !form.title.trim()}
+                onClick={saveHandout}
+                type="button"
+              >
+                {saving ? '保存中' : '保存草稿'}
+              </button>
+            </div>
           </div>
 
           <div className="handout-form-grid">

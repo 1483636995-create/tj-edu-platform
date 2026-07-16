@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import type {
   AuthUser,
   HandoutDetail,
+  HandoutExportResult,
   HandoutFilterOptions,
   HandoutListResponse,
   HandoutMaterialFile,
@@ -163,6 +164,17 @@ export class HandoutsService {
   async getById(user: AuthUser, id: string): Promise<HandoutDetail> {
     const handout = await this.findVisible(user, id);
     return this.toDetail(handout);
+  }
+
+  async exportMarkdown(user: AuthUser, id: string): Promise<HandoutExportResult> {
+    const handout = await this.findVisible(user, id);
+    const detail = this.toDetail(handout);
+
+    return {
+      filename: `${this.toSafeFilename(detail.title)}.md`,
+      mimeType: 'text/markdown; charset=utf-8',
+      content: this.renderMarkdown(detail)
+    };
   }
 
   async create(user: AuthUser, dto: UpsertHandoutDto): Promise<HandoutDetail> {
@@ -381,6 +393,76 @@ export class HandoutsService {
     }
 
     return sections;
+  }
+
+  private renderMarkdown(handout: HandoutDetail) {
+    const lines: string[] = [
+      `# ${handout.title}`,
+      '',
+      `- 学科：${handout.subject.name}`,
+      `- 年级：${handout.grade?.name ?? '通用'}`,
+      `- 状态：${handout.status}`,
+      `- 题目数：${handout.questionCount}`,
+      `- 文件素材数：${handout.fileCount}`,
+      `- 更新时间：${new Date(handout.updatedAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`,
+      ''
+    ];
+
+    if (handout.objective) {
+      lines.push('## 教学目标', '', handout.objective, '');
+    }
+
+    lines.push('## 讲义结构', '');
+
+    handout.previewSections.forEach((section, sectionIndex) => {
+      lines.push(`### ${sectionIndex + 1}. ${section.knowledgePoint?.name ?? '未归入知识点的素材'}`, '');
+
+      if (section.questions.length) {
+        lines.push('#### 题目', '');
+        section.questions.forEach((question, questionIndex) => {
+          lines.push(
+            `${questionIndex + 1}. ${question.stem}`,
+            `   - 题型：${question.type}`,
+            `   - 难度：${question.difficulty ?? '未设置'}`,
+            ''
+          );
+        });
+      }
+
+      if (section.files.length) {
+        lines.push('#### 文件素材', '');
+        section.files.forEach((file) => {
+          lines.push(`- ${file.name}（${file.category}，${this.formatBytes(file.size)}）`);
+        });
+        lines.push('');
+      }
+
+      if (!section.questions.length && !section.files.length) {
+        lines.push('- 暂无素材', '');
+      }
+    });
+
+    return `${lines.join('\n').trimEnd()}\n`;
+  }
+
+  private formatBytes(size: number) {
+    if (size < 1024) {
+      return `${size} B`;
+    }
+
+    if (size < 1024 * 1024) {
+      return `${(size / 1024).toFixed(1)} KB`;
+    }
+
+    return `${(size / 1024 / 1024).toFixed(1)} MB`;
+  }
+
+  private toSafeFilename(value: string) {
+    return value
+      .trim()
+      .replace(/[\\/:*?"<>|]+/g, '-')
+      .replace(/\s+/g, '-')
+      .slice(0, 80);
   }
 
   private toQuestionMaterial(question: QuestionMaterialRecord): HandoutMaterialQuestion {

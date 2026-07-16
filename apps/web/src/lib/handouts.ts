@@ -4,7 +4,7 @@ import type {
   HandoutFilterOptions,
   HandoutListResponse
 } from '@tj-edu/shared';
-import { apiRequest } from './auth';
+import { API_BASE_URL, ApiError, type ApiErrorPayload, apiRequest } from './auth';
 
 export interface HandoutQuery {
   subjectId?: string;
@@ -66,4 +66,22 @@ export function updateHandout(token: string, id: string, input: HandoutInput) {
     },
     token
   );
+}
+
+export async function downloadHandoutExport(token: string, id: string) {
+  const response = await fetch(`${API_BASE_URL}/handouts/${id}/export`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({}))) as ApiErrorPayload;
+    const message = Array.isArray(payload.message) ? payload.message[0] : payload.message;
+    throw new ApiError(message ?? '讲义导出失败，请稍后重试。', response.status, payload);
+  }
+
+  const disposition = response.headers.get('content-disposition') ?? '';
+  const filenameMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  const filename = filenameMatch ? decodeURIComponent(filenameMatch[1]) : 'handout.md';
+
+  return { filename, blob: await response.blob() };
 }

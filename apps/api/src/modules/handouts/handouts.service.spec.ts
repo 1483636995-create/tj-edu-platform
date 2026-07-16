@@ -63,4 +63,87 @@ describe('HandoutsService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(prisma.handoutDraft.create).not.toHaveBeenCalled();
   });
+
+  it('exports a handout draft as markdown content', async () => {
+    prisma.handoutDraft.findFirst.mockResolvedValue({
+      id: 'handout-1',
+      title: '二次函数专题讲义',
+      objective: '掌握二次函数图像与性质。',
+      status: ContentStatus.DRAFT,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+      subject: { id: 'subject-1', code: 'math', name: '数学' },
+      grade: { id: 'grade-1', code: 'junior-3', name: '九年级' },
+      createdBy: { id: user.id, displayName: user.displayName },
+      knowledgeLinks: [
+        {
+          sortOrder: 0,
+          knowledgePoint: {
+            id: 'knowledge-1',
+            code: 'quadratic-functions',
+            name: '二次函数'
+          }
+        }
+      ],
+      questionLinks: [
+        {
+          sortOrder: 0,
+          question: {
+            id: 'question-1',
+            stem: '二次函数的对称轴是什么？',
+            type: 'SHORT_ANSWER',
+            difficulty: 3,
+            subject: { id: 'subject-1', code: 'math', name: '数学' },
+            grade: { id: 'grade-1', code: 'junior-3', name: '九年级' },
+            knowledgeLinks: [
+              {
+                knowledgePoint: {
+                  id: 'knowledge-1',
+                  code: 'quadratic-functions',
+                  name: '二次函数'
+                }
+              }
+            ]
+          }
+        }
+      ],
+      fileLinks: [
+        {
+          sortOrder: 0,
+          fileAsset: {
+            id: 'file-1',
+            name: '二次函数课堂素材.pdf',
+            category: 'HANDOUT',
+            mimeType: 'application/pdf',
+            size: 2048,
+            subject: { id: 'subject-1', code: 'math', name: '数学' },
+            grade: { id: 'grade-1', code: 'junior-3', name: '九年级' },
+            knowledgeLinks: [
+              {
+                knowledgePoint: {
+                  id: 'knowledge-1',
+                  code: 'quadratic-functions',
+                  name: '二次函数'
+                }
+              }
+            ]
+          }
+        }
+      ]
+    });
+    const service = new HandoutsService(prisma as unknown as PrismaService);
+
+    const exported = await service.exportMarkdown(user, 'handout-1');
+
+    expect(exported).toEqual(
+      expect.objectContaining({
+        filename: '二次函数专题讲义.md',
+        mimeType: 'text/markdown; charset=utf-8'
+      })
+    );
+    expect(exported.content).toContain('# 二次函数专题讲义');
+    expect(exported.content).toContain('掌握二次函数图像与性质。');
+    expect(exported.content).toContain('二次函数的对称轴是什么？');
+    expect(exported.content).toContain('二次函数课堂素材.pdf');
+  });
 });

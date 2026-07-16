@@ -1049,6 +1049,18 @@ a:focus-visible {
   padding: 0 18px;
 }
 
+.handout-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.handout-editor-actions .primary-button,
+.handout-editor-actions .secondary-button {
+  min-width: 96px;
+  padding: 0 16px;
+}
+
 .handout-form-grid {
   display: grid;
   grid-template-columns: minmax(220px, 1.2fr) repeat(3, minmax(120px, 0.65fr));
@@ -1699,5 +1711,14 @@ a:focus-visible {
   .pagination > div,
   .pagination .secondary-button {
     width: 100%;
+  }
+
+  .handout-editor-actions {
+    width: 100%;
+  }
+
+  .handout-editor-actions .primary-button,
+  .handout-editor-actions .secondary-button {
+    flex: 1;
   }
 }
