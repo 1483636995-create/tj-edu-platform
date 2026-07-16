@@ -48,6 +48,12 @@ export interface HandoutDetail extends HandoutSummary {
   createdAt: string;
 }
 
+export interface HandoutExportResult {
+  filename: string;
+  mimeType: 'text/markdown; charset=utf-8';
+  content: string;
+}
+
 export interface HandoutListResponse {
   items: HandoutSummary[];
   page: number;
