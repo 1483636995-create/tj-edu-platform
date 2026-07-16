@@ -6,6 +6,7 @@ const staffRoles: UserRole[] = ['admin', 'academic_admin', 'teacher'];
 export const navItems: Array<{ href: string; label: string; roles: UserRole[] }> = [
   { href: '/dashboard', label: '仪表盘', roles: allRoles },
   { href: '/questions', label: '题库', roles: staffRoles },
+  { href: '/papers', label: '组题', roles: staffRoles },
   { href: '/handouts', label: '讲义', roles: staffRoles },
   { href: '/timetable', label: '课表', roles: allRoles },
   { href: '/students', label: '学生档案', roles: staffRoles },
