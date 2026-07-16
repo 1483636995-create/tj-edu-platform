@@ -7,6 +7,7 @@ import {
   EducationStage,
   LessonStatus,
   LessonType,
+  MasteryStatus,
   PaperType,
   PrismaClient,
   QuestionType,
@@ -595,6 +596,135 @@ async function main() {
     await prisma.lessonStudent.deleteMany({ where: { lessonId: lessonSeed.id } });
     await prisma.lessonStudent.createMany({
       data: studentIds.map((studentId) => ({ lessonId: lessonSeed.id, studentId: studentId! }))
+    });
+  }
+
+  const profileSeeds = [
+    {
+      studentNo: 'S2001',
+      updatedByNo: 'T1001',
+      summary: '数学二次函数基础较稳，压轴题读题和建模速度需要继续训练。',
+      goals: '两周内完成二次函数综合题 20 道，错题复盘做到同类题能独立讲解。',
+      notes: '课堂参与度高，建议每次课后补一条方法总结。'
+    },
+    {
+      studentNo: 'S2002',
+      updatedByNo: 'T1002',
+      summary: '物理力学概念理解较快，计算步骤偶尔跳步。',
+      goals: '本周重点巩固受力分析图和单位换算。',
+      notes: '一对一课后需要保留草稿步骤，便于教师追踪错误来源。'
+    },
+    {
+      studentNo: 'S2003',
+      updatedByNo: 'T1002',
+      summary: '英语阅读能抓主旨，细节题需要回文定位。',
+      goals: '每天完成一篇阅读，标注题干关键词和原文依据。',
+      notes: '词汇积累稳定，建议增加错因标签。'
+    }
+  ] as const;
+
+  for (const profileSeed of profileSeeds) {
+    const studentId = studentRecords.get(profileSeed.studentNo);
+    const updatedById = teacherRecords.get(profileSeed.updatedByNo);
+    if (!studentId || !updatedById) {
+      throw new Error(`Missing seed dependency for student profile ${profileSeed.studentNo}.`);
+    }
+
+    await prisma.studentProfile.upsert({
+      where: { studentId },
+      update: {
+        updatedById,
+        summary: profileSeed.summary,
+        goals: profileSeed.goals,
+        notes: profileSeed.notes
+      },
+      create: {
+        studentId,
+        updatedById,
+        summary: profileSeed.summary,
+        goals: profileSeed.goals,
+        notes: profileSeed.notes
+      }
+    });
+  }
+
+  const mistakeSeeds = [
+    {
+      id: '50000000-0000-4000-8000-000000000001',
+      studentNo: 'S2001',
+      questionId: '20000000-0000-4000-8000-000000000001',
+      lessonId: '41000000-0000-4000-8000-000000000001',
+      status: MasteryStatus.REVIEWING,
+      wrongAnswer: { choice: 'A', value: 'x = 1' },
+      notes: '对称轴公式记忆不稳定，需从配方过程重新推导。',
+      occurredAt: '2026-06-29T12:05:00.000Z'
+    },
+    {
+      id: '50000000-0000-4000-8000-000000000002',
+      studentNo: 'S2001',
+      questionId: '20000000-0000-4000-8000-000000000004',
+      lessonId: '41000000-0000-4000-8000-000000000004',
+      status: MasteryStatus.NEW,
+      wrongAnswer: { points: ['照应标题'] },
+      notes: '现代文结构作用回答不完整。',
+      occurredAt: '2026-07-04T03:10:00.000Z'
+    },
+    {
+      id: '50000000-0000-4000-8000-000000000003',
+      studentNo: 'S2002',
+      questionId: '20000000-0000-4000-8000-000000000002',
+      lessonId: '41000000-0000-4000-8000-000000000002',
+      status: MasteryStatus.REVIEWING,
+      wrongAnswer: { value: 2, unit: 'N' },
+      notes: '混淆质量和重力，需强化公式 G = mg。',
+      occurredAt: '2026-07-01T12:35:00.000Z'
+    },
+    {
+      id: '50000000-0000-4000-8000-000000000004',
+      studentNo: 'S2003',
+      questionId: '20000000-0000-4000-8000-000000000003',
+      lessonId: '41000000-0000-4000-8000-000000000003',
+      status: MasteryStatus.MASTERED,
+      wrongAnswer: { keywords: ['weekly plan'] },
+      notes: '已能回到原文定位关键词。',
+      occurredAt: '2026-07-02T12:05:00.000Z',
+      resolvedAt: '2026-07-03T10:00:00.000Z'
+    }
+  ] as const;
+
+  for (const mistakeSeed of mistakeSeeds) {
+    const studentId = studentRecords.get(mistakeSeed.studentNo);
+    const resolvedAt =
+      'resolvedAt' in mistakeSeed && mistakeSeed.resolvedAt
+        ? new Date(mistakeSeed.resolvedAt)
+        : null;
+    if (!studentId) {
+      throw new Error(`Missing seed dependency for mistake ${mistakeSeed.id}.`);
+    }
+
+    await prisma.mistake.upsert({
+      where: { id: mistakeSeed.id },
+      update: {
+        studentId,
+        questionId: mistakeSeed.questionId,
+        lessonId: mistakeSeed.lessonId,
+        status: mistakeSeed.status,
+        wrongAnswer: mistakeSeed.wrongAnswer,
+        notes: mistakeSeed.notes,
+        occurredAt: new Date(mistakeSeed.occurredAt),
+        resolvedAt
+      },
+      create: {
+        id: mistakeSeed.id,
+        studentId,
+        questionId: mistakeSeed.questionId,
+        lessonId: mistakeSeed.lessonId,
+        status: mistakeSeed.status,
+        wrongAnswer: mistakeSeed.wrongAnswer,
+        notes: mistakeSeed.notes,
+        occurredAt: new Date(mistakeSeed.occurredAt),
+        resolvedAt
+      }
     });
   }
 }
