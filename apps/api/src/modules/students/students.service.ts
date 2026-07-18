@@ -3,6 +3,8 @@ import type {
   AuthUser,
   StudentDetail,
   StudentFilterOptions,
+  StudentFocusKnowledgePoint,
+  StudentFollowUpInsight,
   StudentListResponse,
   StudentLessonRecord,
   StudentMistakeSummary,
@@ -313,8 +315,118 @@ export class StudentsService {
       lastLessonAt: student.lessonEnrollments[0]?.lesson.startsAt.toISOString() ?? null,
       profile: this.toProfileSummary(student.profile),
       lessons: student.lessonEnrollments.map(({ lesson }) => this.toLessonRecord(lesson)),
-      mistakes: student.mistakes.map((mistake) => this.toMistakeSummary(mistake))
+      mistakes: student.mistakes.map((mistake) => this.toMistakeSummary(mistake)),
+      followUp: this.buildFollowUpInsight(student)
     };
+  }
+
+  private buildFollowUpInsight(student: StudentDetailRecord): StudentFollowUpInsight {
+    const openMistakes = student.mistakes.filter(
+      (mistake) => mistake.status !== MasteryStatus.MASTERED
+    );
+    const reviewingMistakes = student.mistakes.filter(
+      (mistake) => mistake.status === MasteryStatus.REVIEWING
+    );
+    const focusKnowledgePoints = this.getFocusKnowledgePoints(openMistakes);
+    const lessons = student.lessonEnrollments.map(({ lesson }) => lesson);
+    const completedLessonCount = lessons.filter((lesson) => lesson.status === 'COMPLETED').length;
+    const riskReasons: string[] = [];
+    const suggestedActions: string[] = [];
+    const lastLessonAt = lessons[0]?.startsAt ?? null;
+
+    if (openMistakes.length >= 5) {
+      riskReasons.push('待复习错题较多');
+    } else if (openMistakes.length >= 2) {
+      riskReasons.push('存在多道待复习错题');
+    }
+
+    if (focusKnowledgePoints[0]?.openMistakeCount >= 3) {
+      riskReasons.push(`${focusKnowledgePoints[0].name} 错题集中`);
+    }
+
+    if (!lastLessonAt) {
+      riskReasons.push('暂无课堂记录');
+    }
+
+    if (!student.profile?.goals) {
+      riskReasons.push('近期学习目标未补充');
+    }
+
+    if (focusKnowledgePoints[0]) {
+      suggestedActions.push(`安排一次 ${focusKnowledgePoints[0].name} 专项复盘`);
+    }
+
+    if (reviewingMistakes.length >= 2) {
+      suggestedActions.push('检查复习中的错题是否可以转为已掌握');
+    }
+
+    if (!student.profile?.goals) {
+      suggestedActions.push('补充下一阶段学习目标');
+    }
+
+    if (!suggestedActions.length) {
+      suggestedActions.push('维持当前学习节奏，下一次课后更新档案');
+    }
+
+    return {
+      riskLevel: this.getRiskLevel(openMistakes.length, focusKnowledgePoints, lastLessonAt),
+      riskReasons: riskReasons.length ? riskReasons : ['当前跟进风险较低'],
+      focusKnowledgePoints,
+      suggestedActions,
+      nextReviewAt: this.getNextReviewAt(openMistakes, lastLessonAt),
+      recentLessonCount: lessons.length,
+      completedLessonCount,
+      openMistakeCount: openMistakes.length
+    };
+  }
+
+  private getFocusKnowledgePoints(mistakes: StudentDetailRecord['mistakes']): StudentFocusKnowledgePoint[] {
+    const pointCounts = new Map<string, StudentFocusKnowledgePoint>();
+
+    mistakes.forEach((mistake) => {
+      mistake.question.knowledgeLinks.forEach(({ knowledgePoint }) => {
+        const existing = pointCounts.get(knowledgePoint.id);
+        pointCounts.set(knowledgePoint.id, {
+          ...knowledgePoint,
+          openMistakeCount: (existing?.openMistakeCount ?? 0) + 1
+        });
+      });
+    });
+
+    return [...pointCounts.values()]
+      .sort((left, right) => right.openMistakeCount - left.openMistakeCount)
+      .slice(0, 3);
+  }
+
+  private getRiskLevel(
+    openMistakeCount: number,
+    focusKnowledgePoints: StudentFocusKnowledgePoint[],
+    lastLessonAt: Date | null
+  ): StudentFollowUpInsight['riskLevel'] {
+    if (openMistakeCount >= 5 || (focusKnowledgePoints[0]?.openMistakeCount ?? 0) >= 3) {
+      return 'HIGH';
+    }
+
+    if (openMistakeCount >= 2 || !lastLessonAt) {
+      return 'MEDIUM';
+    }
+
+    return 'LOW';
+  }
+
+  private getNextReviewAt(
+    openMistakes: StudentDetailRecord['mistakes'],
+    lastLessonAt: Date | null
+  ) {
+    const baseDate = openMistakes[0]?.occurredAt ?? lastLessonAt;
+
+    if (!baseDate) {
+      return null;
+    }
+
+    const nextReviewAt = new Date(baseDate);
+    nextReviewAt.setDate(nextReviewAt.getDate() + (openMistakes.length ? 3 : 7));
+    return nextReviewAt.toISOString();
   }
 
   private toProfileSummary(
