@@ -103,4 +103,111 @@ describe('StudentsService', () => {
     );
     expect(result.status).toBe(MasteryStatus.MASTERED);
   });
+
+  it('builds follow-up insight from open mistakes and lessons', async () => {
+    prisma.student.findFirst.mockResolvedValue({
+      id: 'student-1',
+      studentNo: 'S001',
+      schoolName: '天津示范中学',
+      user: { displayName: '张同学' },
+      grade: { id: 'grade-1', code: 'junior-3', name: '九年级' },
+      region: { id: 'region-1', code: '120101', name: '和平区' },
+      profile: {
+        summary: '基础稳定',
+        goals: null,
+        notes: '需要关注函数压轴题',
+        updatedAt: new Date('2026-07-01T00:00:00.000Z'),
+        updatedBy: null
+      },
+      mistakes: [
+        {
+          id: 'mistake-1',
+          status: MasteryStatus.NEW,
+          wrongAnswer: null,
+          notes: null,
+          occurredAt: new Date('2026-07-10T10:00:00.000Z'),
+          resolvedAt: null,
+          question: {
+            id: 'question-1',
+            stem: '二次函数图像问题',
+            type: QuestionType.SINGLE_CHOICE,
+            subject: { id: 'subject-1', code: 'math', name: '数学' },
+            grade: { id: 'grade-1', code: 'junior-3', name: '九年级' },
+            knowledgeLinks: [
+              {
+                knowledgePoint: {
+                  id: 'knowledge-1',
+                  code: 'quadratic-functions',
+                  name: '二次函数'
+                }
+              }
+            ]
+          },
+          lesson: null
+        },
+        {
+          id: 'mistake-2',
+          status: MasteryStatus.REVIEWING,
+          wrongAnswer: null,
+          notes: null,
+          occurredAt: new Date('2026-07-09T10:00:00.000Z'),
+          resolvedAt: null,
+          question: {
+            id: 'question-2',
+            stem: '二次函数对称轴问题',
+            type: QuestionType.SHORT_ANSWER,
+            subject: { id: 'subject-1', code: 'math', name: '数学' },
+            grade: { id: 'grade-1', code: 'junior-3', name: '九年级' },
+            knowledgeLinks: [
+              {
+                knowledgePoint: {
+                  id: 'knowledge-1',
+                  code: 'quadratic-functions',
+                  name: '二次函数'
+                }
+              }
+            ]
+          },
+          lesson: null
+        }
+      ],
+      lessonEnrollments: [
+        {
+          lesson: {
+            id: 'lesson-1',
+            title: '二次函数专题课',
+            type: 'ONE_ON_ONE',
+            status: 'COMPLETED',
+            classroom: 'A101',
+            startsAt: new Date('2026-07-08T10:00:00.000Z'),
+            endsAt: new Date('2026-07-08T12:00:00.000Z'),
+            teacher: {
+              id: 'teacher-1',
+              employeeNo: 'T001',
+              user: { displayName: '李老师' }
+            },
+            subject: { id: 'subject-1', code: 'math', name: '数学' }
+          }
+        }
+      ],
+      _count: { mistakes: 2 }
+    });
+    const service = new StudentsService(prisma as unknown as PrismaService);
+
+    const result = await service.getById(user, 'student-1');
+
+    expect(result.followUp).toEqual(
+      expect.objectContaining({
+        riskLevel: 'MEDIUM',
+        openMistakeCount: 2,
+        recentLessonCount: 1,
+        completedLessonCount: 1
+      })
+    );
+    expect(result.followUp.focusKnowledgePoints[0]).toEqual(
+      expect.objectContaining({ name: '二次函数', openMistakeCount: 2 })
+    );
+    expect(result.followUp.suggestedActions).toContain('安排一次 二次函数 专项复盘');
+    expect(result.followUp.nextReviewAt).toBe('2026-07-13T10:00:00.000Z');
+  });
 });

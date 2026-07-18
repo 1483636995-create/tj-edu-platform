@@ -3,6 +3,7 @@ import type { NamedOption } from './questions';
 export const MASTERY_STATUSES = ['NEW', 'REVIEWING', 'MASTERED'] as const;
 
 export type MasteryStatus = (typeof MASTERY_STATUSES)[number];
+export type StudentRiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
 
 export interface StudentSummary {
   id: string;
@@ -55,10 +56,26 @@ export interface StudentMistakeSummary {
   lesson: { id: string; title: string; startsAt: string } | null;
 }
 
+export interface StudentFocusKnowledgePoint extends NamedOption {
+  openMistakeCount: number;
+}
+
+export interface StudentFollowUpInsight {
+  riskLevel: StudentRiskLevel;
+  riskReasons: string[];
+  focusKnowledgePoints: StudentFocusKnowledgePoint[];
+  suggestedActions: string[];
+  nextReviewAt: string | null;
+  recentLessonCount: number;
+  completedLessonCount: number;
+  openMistakeCount: number;
+}
+
 export interface StudentDetail extends StudentSummary {
   profile: StudentProfileSummary;
   lessons: StudentLessonRecord[];
   mistakes: StudentMistakeSummary[];
+  followUp: StudentFollowUpInsight;
 }
 
 export interface StudentListResponse {

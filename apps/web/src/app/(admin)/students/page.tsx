@@ -5,6 +5,7 @@ import type {
   StudentDetail,
   StudentFilterOptions,
   StudentListResponse,
+  StudentRiskLevel,
   StudentSummary
 } from '@tj-edu/shared';
 import { useEffect, useMemo, useState } from 'react';
@@ -34,6 +35,12 @@ const lessonTypeLabels = {
   ONE_ON_ONE: '一对一'
 } as const;
 
+const riskLabels: Record<StudentRiskLevel, string> = {
+  LOW: '低风险',
+  MEDIUM: '需跟进',
+  HIGH: '高优先级'
+};
+
 interface FilterState {
   gradeId: string;
   regionId: string;
@@ -56,18 +63,6 @@ function formatDateTime(value: string | null) {
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit'
-  }).format(new Date(value));
-}
-
-function formatDate(value: string | null) {
-  if (!value) {
-    return '未更新';
-  }
-
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
   }).format(new Date(value));
 }
 
@@ -184,22 +179,12 @@ export default function StudentsPage() {
     setError(null);
     try {
       const updatedMistake = await updateStudentMistake(token, detail.id, mistakeId, { status });
-      setDetail((current) => {
-        if (!current) {
-          return current;
-        }
-
-        return {
-          ...current,
-          mistakes: current.mistakes.map((mistake) =>
-            mistake.id === updatedMistake.id ? updatedMistake : mistake
-          ),
-          openMistakeCount: current.mistakes.filter((mistake) =>
-            mistake.id === updatedMistake.id
-              ? updatedMistake.status !== 'MASTERED'
-              : mistake.status !== 'MASTERED'
-          ).length
-        };
+      const refreshed = await getStudent(token, detail.id);
+      setDetail({
+        ...refreshed,
+        mistakes: refreshed.mistakes.map((mistake) =>
+          mistake.id === updatedMistake.id ? updatedMistake : mistake
+        )
       });
       setMessage('错题掌握状态已更新。');
     } catch (requestError) {
@@ -212,7 +197,7 @@ export default function StudentsPage() {
       <section className="page-header">
         <div>
           <h1>学生档案</h1>
-          <p>沉淀课程记录、错题掌握状态和教师备注，支撑一生一案跟进。</p>
+          <p>沉淀课程记录、错题掌握状态和教师备注，支持一生一案跟进。</p>
         </div>
         <span className="status-pill">{result?.total ?? 0} 名学生</span>
       </section>
@@ -277,7 +262,7 @@ export default function StudentsPage() {
                     <span>
                       <strong>{student.displayName}</strong>
                       <small>
-                        {student.studentNo ?? '未填学号'} · {student.grade.name}
+                        {student.studentNo ?? '未填学号'} / {student.grade.name}
                       </small>
                     </span>
                     <span>
@@ -331,11 +316,13 @@ export default function StudentsPage() {
                 <div>
                   <h2>{detail.displayName}</h2>
                   <p>
-                    {detail.grade.name} · {detail.region?.name ?? '未填区域'} ·{' '}
+                    {detail.grade.name} / {detail.region?.name ?? '未填区域'} /{' '}
                     {detail.schoolName ?? '未填学校'}
                   </p>
                 </div>
-                <span className="status-pill">{detail.openMistakeCount} 条待复习</span>
+                <span className={`status-pill risk-${detail.followUp.riskLevel.toLowerCase()}`}>
+                  {riskLabels[detail.followUp.riskLevel]}
+                </span>
               </header>
 
               <div className="student-stat-grid">
@@ -348,10 +335,58 @@ export default function StudentsPage() {
                   <strong>{formatDateTime(detail.lastLessonAt)}</strong>
                 </div>
                 <div>
-                  <span>档案更新</span>
-                  <strong>{formatDate(detail.profile.updatedAt)}</strong>
+                  <span>下次复盘</span>
+                  <strong>{formatDateTime(detail.followUp.nextReviewAt)}</strong>
                 </div>
               </div>
+
+              <section className="follow-up-panel">
+                <header>
+                  <div>
+                    <h3>跟进建议</h3>
+                    <p>
+                      最近 {detail.followUp.recentLessonCount} 次课，
+                      {detail.followUp.completedLessonCount} 次已完成，
+                      {detail.followUp.openMistakeCount} 道错题待复习。
+                    </p>
+                  </div>
+                  <span className={`status-pill risk-${detail.followUp.riskLevel.toLowerCase()}`}>
+                    {riskLabels[detail.followUp.riskLevel]}
+                  </span>
+                </header>
+                <div className="follow-up-grid">
+                  <section>
+                    <h4>风险原因</h4>
+                    <ul>
+                      {detail.followUp.riskReasons.map((reason) => (
+                        <li key={reason}>{reason}</li>
+                      ))}
+                    </ul>
+                  </section>
+                  <section>
+                    <h4>重点知识点</h4>
+                    <div className="focus-tags">
+                      {detail.followUp.focusKnowledgePoints.length ? (
+                        detail.followUp.focusKnowledgePoints.map((point) => (
+                          <span key={point.id}>
+                            {point.name} · {point.openMistakeCount}
+                          </span>
+                        ))
+                      ) : (
+                        <span>暂无集中错题</span>
+                      )}
+                    </div>
+                  </section>
+                  <section>
+                    <h4>建议动作</h4>
+                    <ul>
+                      {detail.followUp.suggestedActions.map((action) => (
+                        <li key={action}>{action}</li>
+                      ))}
+                    </ul>
+                  </section>
+                </div>
+              </section>
 
               <div className="student-profile-editor">
                 <label>
@@ -408,8 +443,8 @@ export default function StudentsPage() {
                         <div>
                           <strong>{lesson.title}</strong>
                           <span>
-                            {lesson.subject.name} · {lesson.teacher.displayName} ·{' '}
-                            {lessonTypeLabels[lesson.type]} · {lessonStatusLabels[lesson.status]}
+                            {lesson.subject.name} / {lesson.teacher.displayName} /{' '}
+                            {lessonTypeLabels[lesson.type]} / {lessonStatusLabels[lesson.status]}
                           </span>
                         </div>
                       </li>
@@ -425,7 +460,7 @@ export default function StudentsPage() {
                         <div>
                           <strong>{mistake.question.stem}</strong>
                           <span>
-                            {mistake.question.subject.name} ·{' '}
+                            {mistake.question.subject.name} /{' '}
                             {mistake.question.knowledgePoints
                               .map((point) => point.name)
                               .join('、') || '未关联知识点'}
@@ -445,7 +480,7 @@ export default function StudentsPage() {
                           ))}
                         </select>
                         <small>
-                          {mistake.lesson?.title ?? '未关联课节'} ·{' '}
+                          {mistake.lesson?.title ?? '未关联课节'} /{' '}
                           {formatDateTime(mistake.occurredAt)}
                         </small>
                       </article>

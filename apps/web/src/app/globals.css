@@ -305,6 +305,21 @@ a:focus-visible {
   font-weight: 700;
 }
 
+.risk-low {
+  background: #e7f6ef;
+  color: #087443;
+}
+
+.risk-medium {
+  background: #fff4d6;
+  color: #8a5200;
+}
+
+.risk-high {
+  background: #fff1f0;
+  color: #b42318;
+}
+
 .page-header {
   display: flex;
   align-items: flex-end;
@@ -857,6 +872,86 @@ a:focus-visible {
   margin-bottom: 20px;
   border-bottom: 1px solid var(--line);
   padding-bottom: 18px;
+}
+
+.follow-up-panel {
+  margin-bottom: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: #fbfdfc;
+}
+
+.follow-up-panel header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.follow-up-panel h3,
+.follow-up-panel h4,
+.follow-up-panel p,
+.follow-up-panel ul {
+  margin: 0;
+}
+
+.follow-up-panel h3 {
+  font-size: 18px;
+}
+
+.follow-up-panel p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.follow-up-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.follow-up-grid section {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px;
+  background: #fff;
+}
+
+.follow-up-grid h4 {
+  margin-bottom: 8px;
+  color: #344054;
+  font-size: 13px;
+}
+
+.follow-up-grid ul {
+  display: grid;
+  gap: 7px;
+  padding-left: 18px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.focus-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.focus-tags span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 0 10px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .student-profile-editor label {
@@ -1611,7 +1706,8 @@ a:focus-visible {
   .handout-workspace,
   .material-grid,
   .paper-workspace,
-  .paper-builder-grid {
+  .paper-builder-grid,
+  .follow-up-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1620,7 +1716,8 @@ a:focus-visible {
   .handout-workspace,
   .material-grid,
   .paper-workspace,
-  .paper-builder-grid {
+  .paper-builder-grid,
+  .follow-up-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1672,6 +1769,7 @@ a:focus-visible {
   .topbar,
   .student-detail-header,
   .student-form-actions,
+  .follow-up-panel header,
   .handout-editor-heading,
   .paper-editor-heading {
     align-items: flex-start;
